@@ -80,7 +80,6 @@ def install_requirements(requirements_path: str | Path = "requirements.txt") -> 
     requirements_path = Path(requirements_path)
     if not requirements_path.exists():
         raise FileNotFoundError(f"Could not find requirements file: {requirements_path}")
-
     # Colab images occasionally miss one or more of these tools, and older
     # versions bundled with the runtime can fail to build wheels for packages
     # that ship only source distributions.  Upgrading them first keeps the
