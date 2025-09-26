@@ -5,6 +5,7 @@ import argparse
 import json
 import math
 import os
+from pathlib import Path
 import typing
 
 import numpy as np
@@ -33,9 +34,18 @@ def t_video_analysis(video_path, output_dir, pos: tuple, visualize: bool = False
     Output:
         velocity_ums: the velocity of detected white blood cells
     '''    
-    profiles,fps = get_profiles(video_path, pos, split_num=split_num, pad_ratio=pad_ratio)
-    
+    seg_output_dir = os.path.join(output_dir, "segmentations") if output_dir else None
+    profiles,fps = get_profiles(video_path, pos, split_num=split_num, pad_ratio=pad_ratio, seg_output_dir=seg_output_dir)
+
+    if profiles is None or len(profiles) == 0:
+        print("No valid profiles were generated for the current video. Skipping velocity estimation.")
+        return []
+
     sinogram = radon_test(profiles)
+
+    if not isinstance(sinogram, np.ndarray) or sinogram.size == 0:
+        print("Unable to build a valid sinogram from the extracted profiles. Skipping velocity estimation.")
+        return []
 
     extremas = find_extrema(sinogram)
     # extremas = vote(sinogram, extremas)
@@ -60,14 +70,14 @@ def t_video_analysis(video_path, output_dir, pos: tuple, visualize: bool = False
             reconstruction_fbp = iradon(extremas_field)
             wbc_time = count_time(reconstruction_fbp)
             
-            draw_wbc(wbc_time, velocity_ums, profiles.shape[0], fps, output_dir, f"{video_name}_WBC_events.png")    
+            draw_wbc(wbc_time, velocity_ums, profiles.shape[0], fps, output_dir, f"{video_name}_WBC_events.png")
             draw_boxplot_and_annotate(velocity_ums, output_dir, f"{video_name}_boxplot.png")
     
     return velocity_ums
 
 
-def get_profiles(video_path, pos=(132, 70), skip_frame=1, split_num=2, pad_ratio=1):
-    
+def get_profiles(video_path, pos=(132, 70), skip_frame=1, split_num=2, pad_ratio=1, seg_output_dir=None):
+
     imgs, fps = process_video(video_path, skip_frame)
     frame_num = len(imgs) 
     # print(f"Seed at {pos}")
@@ -77,7 +87,14 @@ def get_profiles(video_path, pos=(132, 70), skip_frame=1, split_num=2, pad_ratio
     best_seg = get_video_best_seg(
         images=imgs, split_num=split_num, pad_ratio=pad_ratio)
     myseg = ImageSegmentation(best_seg)
-    myseg.save_seg("/home/user/nailfold/zhaolx/Full_Pipeline/Flow_Velocity_Measurement/output_seg", video_path.split("/")[-3])
+    if seg_output_dir:
+        os.makedirs(seg_output_dir, exist_ok=True)
+        video_path_obj = Path(video_path)
+        try:
+            seg_name = video_path_obj.parents[2].name
+        except IndexError:
+            seg_name = video_path_obj.stem
+        myseg.save_seg(seg_output_dir, seg_name)
     
     seed = myseg.get_nearest_seed(myseg.img_thinning, pos)
     

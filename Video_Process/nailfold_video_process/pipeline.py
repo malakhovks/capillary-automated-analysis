@@ -144,20 +144,20 @@ def video_process_file(input, output):
 
 if __name__ == '__main__':
     args = parse_args()
-    # 看7.29中的所有文件夹
-    args.input = "/home/user/nailfold/20221003_nailfold/video/59791"
-    args.output = "./debug/pipeline/59791"
+    if not args.input:
+        raise ValueError("An input path is required. Use --input to point to a video file or a directory containing videos.")
+
     root = args.input
     output = args.output
-    os.makedirs(output,exist_ok=True)
+    os.makedirs(output, exist_ok=True)
     if os.path.isfile(root):
         process_file(root, output)
     else:
         for file in os.listdir(root):
-            if file.startswith("."):
+            if file.startswith('.'):
                 continue
-            if not file.endswith(".mp4"):
+            if not file.endswith('.mp4'):
                 continue
-            if file.endswith("kp.mp4"):
+            if file.endswith('kp.mp4'):
                 continue
-            process_file(os.path.join(root,file), output)
+            process_file(os.path.join(root, file), output)
