@@ -42,6 +42,13 @@ Colab-compatible `requirements.txt` file and adds the repository packages to the
 python path so imports such as `from Image_Analysis ...` work without any manual
 path editing.
 
+When the notebook is executed on the latest Google Colab runtimes (Python 3.12)
+the installer automatically switches to the dedicated
+`requirements-py312-colab.txt` constraints file.  This keeps the dependency set
+compatible with the new interpreter without requiring any changes to existing
+setup cells.  Older runtimes (Python 3.11 and 3.10) continue to use the
+corresponding requirements files to maximise compatibility.
+
 ## Run Pipeline
 ### Run Image Automated Analysis Pipeline
 - Run full pipeline for specific image analysis:

@@ -30,12 +30,13 @@ from typing import Iterable
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 # Requirements file that ships with the repository for the legacy Colab runtime
-# (Python 3.10) and an alternative set of dependencies that targets the modern
-# runtimes (Python 3.11+).  The split avoids the need to maintain complex
-# environment markers inside a single requirements file while still keeping the
-# setup helper ergonomic for notebook users.
+# (Python 3.10) and alternative sets of dependencies that target the modern
+# runtimes (Python 3.11 and 3.12).  The split avoids the need to maintain
+# complex environment markers inside a single requirements file while still
+# keeping the setup helper ergonomic for notebook users.
 DEFAULT_REQUIREMENTS = PROJECT_ROOT / "requirements.txt"
 MODERN_COLAB_REQUIREMENTS = PROJECT_ROOT / "requirements-py311-colab.txt"
+LATEST_COLAB_REQUIREMENTS = PROJECT_ROOT / "requirements-py312-colab.txt"
 
 # Subdirectories that expose python packages used across the project.  In a
 # traditional development environment these folders are added to ``PYTHONPATH``
@@ -96,6 +97,8 @@ def _resolve_requirements_path(path: str | Path) -> tuple[Path, bool]:
         return requested, False
 
     interpreter = sys.version_info[:2]
+    if interpreter >= (3, 12):
+        return LATEST_COLAB_REQUIREMENTS, True
     if interpreter >= (3, 11):
         return MODERN_COLAB_REQUIREMENTS, True
 
