@@ -75,7 +75,25 @@ def install_requirements(requirements_path: str | Path = "requirements.txt") -> 
     requirements_path:
         Path to a requirements file.  The default points at the repository level
         ``requirements.txt`` that is compatible with the Colab python runtime.
+
+    Raises
+    ------
+    RuntimeError
+        If the active interpreter is newer than the versions supported by the
+        pinned dependencies (Python 3.10).
     """
+
+    max_supported_version = (3, 10)
+    if sys.version_info[:2] > max_supported_version:
+        version = ".".join(str(part) for part in sys.version_info[:3])
+        raise RuntimeError(
+            "The Colab runtime is using an unsupported Python version "
+            f"({version}). "
+            "This project relies on pinned third-party wheels that are only "
+            f"available up to Python {max_supported_version[0]}.{max_supported_version[1]}. "
+            "Please switch the notebook runtime to Python 3.10 (for example via "
+            "Runtime → Change runtime type) and re-run the setup cell."
+        )
 
     requirements_path = Path(requirements_path)
     if not requirements_path.exists():
