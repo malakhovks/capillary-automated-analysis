@@ -44,6 +44,7 @@ def t_images2kp_rcnn(imgs, batch_size=4, model_name="exp_tangshan_keypoint"):
 
     all_keypoints = []
     all_bboxes = []
+    all_scores = []
 
     for images, targets in iterator:
         images = list(image.to(device) for image in images)
@@ -51,10 +52,9 @@ def t_images2kp_rcnn(imgs, batch_size=4, model_name="exp_tangshan_keypoint"):
         output = model(images)
 
         # images list[(3,400,600)]
-        scores = [o['scores'].detach().cpu().numpy() for o in output]
-
         # Indexes of boxes with scores > 0.7
-        high_scores_idxs = [np.where(score > 0.8)[0] for score in scores]
+        high_scores_idxs = [np.where(o['scores'].detach().cpu().numpy() > 0.8)[0]
+                            for o in output]
         post_nms_idxs =[torchvision.ops.nms(output[i]['boxes'][high_scores_idxs[i]], output[i]['scores'][high_scores_idxs[i]], 0.3).cpu().numpy()
                         for i in range(len(output))] # Indexes of boxes left after applying NMS (iou_threshold=0.3)
 
@@ -64,17 +64,22 @@ def t_images2kp_rcnn(imgs, batch_size=4, model_name="exp_tangshan_keypoint"):
 
         for i in range(len(output)):
             keypoints = []
-            for kps in output[i]['keypoints'][high_scores_idxs[i]][post_nms_idxs[i]].detach().cpu().numpy():
+            filtered_keypoints = output[i]['keypoints'][high_scores_idxs[i]][post_nms_idxs[i]]
+            filtered_boxes = output[i]['boxes'][high_scores_idxs[i]][post_nms_idxs[i]]
+            filtered_scores = output[i]['scores'][high_scores_idxs[i]][post_nms_idxs[i]].detach().cpu().numpy()
+
+            for kps in filtered_keypoints.detach().cpu().numpy():
                 keypoints.append([np.array(kp[:2]).astype(int) for kp in kps])
 
             bboxes = []
-            for bbox in output[i]['boxes'][high_scores_idxs[i]][post_nms_idxs[i]].detach().cpu().numpy():
+            for bbox in filtered_boxes.detach().cpu().numpy():
                 bboxes.append(np.array(bbox).astype(int))
-            
+
             all_keypoints.append(np.array(keypoints))
             all_bboxes.append(np.array(bboxes))
+            all_scores.append(filtered_scores)
 
-    return all_bboxes, all_keypoints, scores
+    return all_bboxes, all_keypoints, all_scores
 
 
 def t_images2masks_rcnn(imgs, batch_size=4, model_name="exp_tangshan_segment"):
