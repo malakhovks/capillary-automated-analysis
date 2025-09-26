@@ -12,3 +12,5 @@ bug_solver_log.md
 *.egg-info
 
 readme_local.md
+
+__pycache__/
