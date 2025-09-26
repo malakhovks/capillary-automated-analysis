@@ -7,11 +7,29 @@ further study.
 
 ## Setup
 
-STEP1: `bash setup.sh` 
+STEP1: `bash setup.sh`
 
-STEP2: `conda activate nailfold` 
+STEP2: `conda activate nailfold`
 
-STEP3: `pip install -r requirements.txt` 
+STEP3: `pip install -r requirements.txt`
+
+### Google Colab quick start
+
+Running the project on [Google Colab](https://colab.research.google.com/) now
+only requires the standard `git clone` step. Once the repository is available in
+your Colab workspace, execute the following cells:
+
+```python
+import colab_setup
+
+colab_setup.install_requirements()
+colab_setup.configure_python_path()
+```
+
+The helper module ensures that all python dependencies are installed using the
+Colab-compatible `requirements.txt` file and adds the repository packages to the
+python path so imports such as `from Image_Analysis ...` work without any manual
+path editing.
 
 ## Run Pipeline
 ### Run Image Automated Analysis Pipeline

@@ -420,14 +420,16 @@ def video2video_by_detect_and_phase(args, filename, start=0, end = -1, debug=Fal
 
 if __name__ == '__main__':
     args = parse_args()
-    if not os.path.exists(args.output):
-        os.makedirs(args.output)
-    args.output = "/home/user/nailfold/Tangshan-Samples/videos"#"./"
-    args.input = "videos/7.28/55896"
-    filename = "wmv1.mp4"
-    video2video_by_detect_and_phase(args,filename)
-    # for filename in os.listdir(args.input):
-    #     if not (filename.endswith("mp4") or filename.endswith("avi")):
-    #         continue
-    #     video2video_by_detect(args,filename)
-        
+    if not args.input:
+        raise ValueError("An input path is required. Use --input to point to a video file or a directory containing videos.")
+
+    os.makedirs(args.output, exist_ok=True)
+
+    if os.path.isfile(args.input):
+        args.input, filename = os.path.split(args.input)
+        video2video_by_detect_and_phase(args, filename)
+    else:
+        for filename in os.listdir(args.input):
+            if not (filename.endswith("mp4") or filename.endswith("avi")):
+                continue
+            video2video_by_detect_and_phase(args, filename)
