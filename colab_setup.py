@@ -51,11 +51,20 @@ def _call_subprocess(command: Iterable[str]) -> None:
     testable and to surface non-zero return codes to the caller.
     """
 
-    completed = subprocess.run(command, check=True)
-    if completed.returncode != 0:
+    try:
+        completed = subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as exc:
+        joined = " ".join(str(part) for part in exc.cmd)
         raise RuntimeError(
-            f"Command {' '.join(command)} finished with return code {completed.returncode}."
-        )
+            "Command execution failed. Scroll up for the captured output and rerun the cell "
+            f"after addressing the issue. (exit code {exc.returncode}: {joined})"
+        ) from exc
+    else:
+        if completed.returncode != 0:
+            joined = " ".join(str(part) for part in command)
+            raise RuntimeError(
+                f"Command {joined} finished with return code {completed.returncode}."
+            )
 
 
 def install_requirements(requirements_path: str | Path = "requirements.txt") -> None:
@@ -71,7 +80,22 @@ def install_requirements(requirements_path: str | Path = "requirements.txt") -> 
     requirements_path = Path(requirements_path)
     if not requirements_path.exists():
         raise FileNotFoundError(f"Could not find requirements file: {requirements_path}")
-
+    # Colab images occasionally miss one or more of these tools, and older
+    # versions bundled with the runtime can fail to build wheels for packages
+    # that ship only source distributions.  Upgrading them first keeps the
+    # installation process predictable.
+    _call_subprocess(
+        (
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel",
+        )
+    )
     _call_subprocess((sys.executable, "-m", "pip", "install", "-r", str(requirements_path)))
 
 

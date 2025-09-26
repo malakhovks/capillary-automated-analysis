@@ -16,6 +16,9 @@ STEP3: `pip install -r requirements.txt`
 ### Google Colab quick start
 
 Running the project on [Google Colab](https://colab.research.google.com/) now
+
+only requires the standard `git clone` step. Once the repository is available in
+=======
 only requires the standard `git clone` step. After cloning, switch to the
 `develop` branch:
 
@@ -24,6 +27,7 @@ git checkout develop
 ```
 
 Once the repository is available in
+
 your Colab workspace, execute the following cells:
 
 ```python
