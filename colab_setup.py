@@ -29,6 +29,14 @@ from typing import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
+# Requirements file that ships with the repository for the legacy Colab runtime
+# (Python 3.10) and an alternative set of dependencies that targets the modern
+# runtimes (Python 3.11+).  The split avoids the need to maintain complex
+# environment markers inside a single requirements file while still keeping the
+# setup helper ergonomic for notebook users.
+DEFAULT_REQUIREMENTS = PROJECT_ROOT / "requirements.txt"
+MODERN_COLAB_REQUIREMENTS = PROJECT_ROOT / "requirements-py311-colab.txt"
+
 # Subdirectories that expose python packages used across the project.  In a
 # traditional development environment these folders are added to ``PYTHONPATH``
 # through editable installs.  Colab does not preserve such configuration, so we
@@ -67,37 +75,55 @@ def _call_subprocess(command: Iterable[str]) -> None:
             )
 
 
+def _resolve_requirements_path(path: str | Path) -> tuple[Path, bool]:
+    """Return the absolute path to the requirements file to install.
+
+    The helper keeps backwards compatibility with the previous behaviour where
+    ``"requirements.txt"`` was the default target.  When running on modern
+    Python versions (3.11 and above) we transparently switch to a dedicated
+    constraints file that pins versions with wheels available for those
+    interpreters.  The boolean return value indicates whether the resolved path
+    differs from the user supplied one so we can surface a helpful log message.
+    """
+
+    requested = Path(path)
+    is_default_request = requested == Path("requirements.txt")
+
+    if not requested.is_absolute():
+        requested = (PROJECT_ROOT / requested).resolve()
+
+    if not is_default_request:
+        return requested, False
+
+    interpreter = sys.version_info[:2]
+    if interpreter >= (3, 11):
+        return MODERN_COLAB_REQUIREMENTS, True
+
+    return DEFAULT_REQUIREMENTS, False
+
+
 def install_requirements(requirements_path: str | Path = "requirements.txt") -> None:
     """Install python dependencies using pip.
 
     Parameters
     ----------
     requirements_path:
-        Path to a requirements file.  The default points at the repository level
-        ``requirements.txt`` that is compatible with the Colab python runtime.
-
-    Raises
-    ------
-    RuntimeError
-        If the active interpreter is newer than the versions supported by the
-        pinned dependencies (Python 3.10).
+        Path to a requirements file.  When left to the default value the helper
+        chooses a constraints file that matches the active Python version.
     """
 
-    max_supported_version = (3, 10)
-    if sys.version_info[:2] > max_supported_version:
-        version = ".".join(str(part) for part in sys.version_info[:3])
-        raise RuntimeError(
-            "The Colab runtime is using an unsupported Python version "
-            f"({version}). "
-            "This project relies on pinned third-party wheels that are only "
-            f"available up to Python {max_supported_version[0]}.{max_supported_version[1]}. "
-            "Please switch the notebook runtime to Python 3.10 (for example via "
-            "Runtime → Change runtime type) and re-run the setup cell."
-        )
+    requirements_path, auto_selected = _resolve_requirements_path(requirements_path)
 
-    requirements_path = Path(requirements_path)
     if not requirements_path.exists():
         raise FileNotFoundError(f"Could not find requirements file: {requirements_path}")
+
+    if auto_selected:
+        version = ".".join(str(part) for part in sys.version_info[:3])
+        relative_path = requirements_path.relative_to(PROJECT_ROOT)
+        print(
+            f"Detected a modern Colab runtime (Python {version}). "
+            f"Installing dependencies from {relative_path}."
+        )
     # Colab images occasionally miss one or more of these tools, and older
     # versions bundled with the runtime can fail to build wheels for packages
     # that ship only source distributions.  Upgrading them first keeps the
