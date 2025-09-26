@@ -34,6 +34,7 @@ notebook can build paths relative to it when loading data.
 from __future__ import annotations
 
 import argparse
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -106,9 +107,31 @@ def prepare_colab_environment(
 
     if install_requirements:
         req_path = _as_path(root / requirements_path)
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-r", str(req_path)]
-        )
+        command = [sys.executable, "-m", "pip", "install", "-r", str(req_path)]
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            stdout = result.stdout.strip()
+            stderr = result.stderr.strip()
+            combined_output = "\n\n".join(part for part in (stdout, stderr) if part)
+
+            message_text = "\n\n" + combined_output if combined_output else ""
+            compatibility_hint = ""
+            if "No matching distribution found" in combined_output:
+                compatibility_hint = (
+                    "\n\nThe pinned dependencies in the requirements file do not "
+                    "appear to provide wheels for Python "
+                    f"{sys.version_info.major}.{sys.version_info.minor}. Consider "
+                    "running `prepare_colab_environment(install_requirements=False)` "
+                    "and managing packages manually or updating the requirements "
+                    "for your Python version."
+                )
+
+            raise RuntimeError(
+                "Failed to install dependencies via pip.\n\n"
+                f"Command: {shlex.join(command)}\n"
+                f"Exit code: {result.returncode}" + message_text + compatibility_hint
+            )
 
     return root
 
