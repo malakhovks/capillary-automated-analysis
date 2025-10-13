@@ -1,9 +1,9 @@
 # coding:utf-8
 import os
+import time
 
 import torch
 import torchvision
-from imutils.video import fps
 from Object_Detection.nailfold_classifier.model_backbone import Backbone
 from torch import nn
 from torchvision.io import read_image
@@ -28,7 +28,42 @@ model.to(device)
 model.eval()
 
 image_path = "./Object_Detection/data/mask_dataset/test/abnormal"
-fps = fps.FPS()
+class SimpleFPS:
+    """Minimal replacement for imutils.video.FPS."""
+
+    def __init__(self):
+        self._start = None
+        self._end = None
+        self._num_frames = 0
+
+    def start(self):
+        self._start = time.perf_counter()
+        self._end = None
+        self._num_frames = 0
+        return self
+
+    def stop(self):
+        if self._start is not None and self._end is None:
+            self._end = time.perf_counter()
+
+    def update(self):
+        if self._start is not None:
+            self._num_frames += 1
+
+    def elapsed(self):
+        if self._start is None:
+            return 0.0
+        end_time = self._end if self._end is not None else time.perf_counter()
+        return end_time - self._start
+
+    def fps(self):
+        elapsed_time = self.elapsed()
+        if elapsed_time == 0:
+            return 0.0
+        return self._num_frames / elapsed_time
+
+
+fps = SimpleFPS()
 fps.start()
 
 with torch.no_grad():
