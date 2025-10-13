@@ -25,7 +25,6 @@ idna==3.4
 imageio==2.22.0
 # Install the backport only where it makes sense (Py<3.10). Python 3.9 is OK.
 importlib-metadata==4.12.0; python_version < "3.10"
-imutils==0.5.4
 joblib==1.2.0
 kiwisolver==1.4.4
 Markdown==3.4.1
